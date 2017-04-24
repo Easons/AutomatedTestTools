@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+<script type="text/javascript" src="/static/codebase/webix.js"></script>
+<link rel="stylesheet" type="text/css" href="/static/codebase/webix.css" />
+<script type="text/javascript"
+	src="/static/components-master/sidebar/sidebar.js"></script>
+<link rel="stylesheet" type="text/css"
+	href="/static/components-master/sidebar/sidebar.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/dataview.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/myLayout.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/dataview.css" />
+</head>
+<body>
+	<script type="text/javascript">
+/*<![CDATA[*/
+	webix.ready(function() {
+		var menudData=[ {id:"addBus", value:"增加", submenu:["业务", "业务组"]}, 
+				        {id:"modifyBus", value:"修改"}, 
+				        {id:"delBus", value:"删除"},
+				        {id:"index", value:"返回主页"}];
+		webix.ui({
+			id : "MyMainContainer",
+			rows : [ {
+				id : "mytoolBar",
+				view : "toolbar",
+				padding : 3,
+				elements : [ {
+					view : "button",
+					type : "icon",
+					icon : "bars",
+					width : 37,
+					align : "left",
+					css : "app_button",
+					gravity: 0,
+					click : function() {
+						$$("mySidebar").toggle()
+					}
+				}, {
+					view : "label",
+					label : "业务模块"
+				},{},{view:"menu",data:menudData,width:260,click:busCollHandle}]
+			}, {
+				cols : [ {
+					id : "mySidebar",
+					view : "sidebar",
+					url : "/bussColl/findAllBusColls",
+					select:true,
+					datatype : "json",
+					on : {
+						onAfterSelect : addTab,
+						onAfterOpen:open,
+						onItemClick:treeClick,
+					}
+				}, {
+					id : "myTabView",
+					view : "tabview",
+					close : true,
+					cells : [ {
+						hidden : true
+					} ]
+				} ]
+			} ]
+		});
+		
+		function busCollHandle(id){
+			webix.ajax().get("/viewChange/busCollHandle?buttonId="+id,
+					function(text, data, XmlHttpRequest) {
+						eval(text.replace(/<(\/)?script>/g, ""));
+					});
+		}
+		
+		function addTab(id) {
+			var busCollId = $$("mySidebar").getParentId(id);
+			webix.ajax().get("/viewChange/addMyTab?id="+id+"&busCollId="+busCollId,
+					function(text, data, XmlHttpRequest) {
+						eval(text.replace(/<(\/)?script>/g, ""));
+					});
+		}
+
+		CaseId = 0;
+		function replaceDataView(id, element) {
+			CaseId = id;
+			var busId = this.getItem(id).busId;
+			//获得业务组id来定位dataview的id和datatable的id
+			webix.ajax().get(
+					"/viewChange/replaceMyDataView?caseCollId=" + id
+							+ "&busId=" + busId,
+					function(text, data, XmlHttpRequest) {
+						eval(text.replace(/<(\/)?script>/g, ""));
+					});
+		}
+
+		LoadCount = 0;
+		function getSelectItem(id) {
+			LoadCount = 1;
+			if(id != '请添加'){
+				webix.ajax().get("/viewChange/getMySelectedItem?caseId=" + id,
+					function(text, data, XmlHttpRequest) {
+						eval(text.replace(/<(\/)?script>/g, ""));
+					});
+			}
+		}
+		function open(id){
+	   			$$("mySidebar").unselectAll();;
+	   	}
+	   	 
+	   	sideBarSelectedItem = null
+	   	function treeClick(id,element){
+	   	 	sideBarSelectedItem = this.getItem(id);
+	   	}
+		});
+/*]]>*/
+</script>
+</body>
+</html>

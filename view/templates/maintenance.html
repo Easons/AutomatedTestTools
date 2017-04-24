@@ -1,0 +1,307 @@
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="/static/codebase/webix.css" />
+<script type="text/javascript" src="/static/codebase/webix.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+/*<![CDATA[*/
+var menu = {
+			view:"menu", 
+			id:"menu2ParentItem",
+			layout:"y", 
+			width:200,
+			select:true,
+			datatype: "json",
+    		url: "/dictionary/findParentItems",
+    		template:"#value#",
+			on:{
+				onMenuItemClick:function(id){
+					var dictionary = $$("menu2ParentItem").getItem(id);
+					$$("datatable2childItem").clearAll();
+					if(dictionary.value == "渠道信息"){
+						 $$("datatable2childItem").showColumn("ip");
+						 $$("datatable2childItem").showColumn("port");
+						 $$("datatable2childItem").showColumn("serverName");
+						 $$("datatable2childItem").setColumnWidth("id",300);
+						 $$("datatable2childItem").setColumnWidth("value",200);
+						 $$("datatable2childItem").load("/communication/findAllComms");
+					}else{
+						$$("datatable2childItem").hideColumn("ip");
+						$$("datatable2childItem").hideColumn("port");
+						$$("datatable2childItem").hideColumn("serverName");
+						$$("datatable2childItem").setColumnWidth("id",700);
+						$$("datatable2childItem").setColumnWidth("value",700);
+						$$("datatable2childItem").load("/dictionary/findItemsByParentId?parentId="+id);
+					}
+				}
+			}
+		};	
+var menudData=[ {id:"addDic", value:"增加"}, 
+				{id:"modifyDic", value:"修改"}, 
+				{id:"delDic", value:"删除"},
+				{id:"index", value:"返回主页"}];
+var toolbar = {
+				id : "mytoolBar",
+				view : "toolbar",
+				padding : 3,
+				elements : [{
+					view : "label",
+					label : "数据维护"
+				},{},{view:"menu",data:menudData,width:260,click:DicHandle}]
+			}
+var dataTable = {
+		view:"datatable",
+		id:"datatable2childItem",
+	    columns:[
+	        { id:"id", header:"id",width:700},
+	        { id:"value", header:"name",width:700},
+	         { id:"ip", header:"ip",width:250,hidden:true},
+	          { id:"port", header:"port",width:250,hidden:true},
+	           { id:"serverName", header:"serverName",width:250,hidden:true}
+	    ],
+		select:true,
+};
+
+var DicForm = {
+				view:"form", 
+			    id:"DicForm",
+			    elements:[
+			    	{ view:"text", label:"id" ,name:"id",id:"Dicid",hidden:true},	
+			        { view:"text", label:"名称" ,name:"value",id:"DicName"},
+			        { view:"select", name:"parentId",id:"DicParent",label:"所属分组:", options:"/dictionary/findItems2Select"},
+			        {cols:[
+			            { view:"button", type:"form", value:"Submit data",click:DicFormSubmit},
+			        ]}
+			   	 ]
+}
+var CommnucationForm = {
+				view:"form", 
+			    id:"CommnucationForm",
+			    elements:[
+			    	{ view:"text", label:"id" ,name:"id",id:"CommId",hidden:true},	
+			        { view:"text", label:"名称" ,name:"value",id:"CommName"},
+			        { view:"text", label:"ip" ,name:"ip",id:"CommIp"},
+			        { view:"text", label:"端口号" ,name:"port",id:"CommPort"},
+			        { view:"text", label:"服务名" ,name:"serverName",id:"CommServerName"},
+			        {cols:[
+			            { view:"button", type:"form", value:"Submit data",click:CommFormSubmit}
+			        ]}
+			   	 ]
+}
+webix.ready(function(){	
+	webix.ui({
+		rows:[
+			toolbar,
+			{ cols:[
+				menu,
+				{ view:"resizer" },
+				dataTable,
+			]},
+		]
+	});
+});
+webix.ui.fullScreen();	
+function DicHandle(id){
+	if(id){
+		var dictionary = $$("datatable2childItem").getSelectedItem();
+		var parentDic = $$("menu2ParentItem").getSelectedItem();
+		 if(id == "index"){
+			window.location.href = "/";
+		 }else{
+		 	if(parentDic){
+			var ParentValue = parentDic.value;
+			if(ParentValue != "渠道信息"){
+				if(id == "addDic"){
+					webix.ui({
+			            view:"window",
+			            id:"windowForDic",
+						height:500,
+						scroll:true,
+			            position:"center",
+			            modal:true,
+			            head:{
+							view:"toolbar", id:"addDic",margin:-4, cols:[
+							{view:"label", label: "增加参数" },
+							{ view:"icon", icon:"times-circle",
+								click:windowForDicClose}
+							]
+						},
+			            body:webix.copy(DicForm)}).show();
+				}else if(id == "modifyDic"){
+				 		var dic2Form = $$("datatable2childItem").getSelectedItem();
+				 		if(dic2Form){
+				 			webix.ui({
+				            view:"window",
+				            id:"windowForDic",
+							height:500,
+							scroll:true,
+				            position:"center",
+				            modal:true,
+				            head:{
+								view:"toolbar", id:"modifyDic",margin:-4, cols:[
+								{view:"label", label: "修改参数" },
+								{ view:"icon", icon:"times-circle",
+									click:windowForDicClose}
+								]
+							},
+				            body:webix.copy(DicForm)}).show();
+					       	$$('DicForm').setValues({id:dic2Form.id,value:dic2Form.value,parentId:dic2Form.parentId});
+				 		}else{
+				 			webix.alert({
+												type:"alert-error",
+												text:"请选中需要修改的数据！"
+												});
+				 		}
+				 	}else if(id == "delDic"){
+				 		if(dictionary){
+							 var dicId = dictionary.id;
+							 webix.ajax().post('/dictionary/removeDictionary', 
+				 					{dicId:dicId}, function (text, xml, xhr) {
+				 						if(text == "true"){
+				 							 $$("datatable2childItem").remove(dicId);
+				 						}else{
+				 							webix.alert({
+												type:"alert-error",
+												text:"删除失败！"
+												});
+				 						}
+								});
+							}else{
+								webix.alert({
+									type:"alert-error",
+									text:"请选中需要删除的数据！"
+									});
+					}
+				}
+				}else{//选择渠道信息
+					 var comm2Form = $$("datatable2childItem").getSelectedItem();
+					 if(id == "addDic"){
+							webix.ui({
+					            view:"window",
+					            id:"windowForDic",
+								height:700,
+								scroll:true,
+					            position:"center",
+					            modal:true,
+					            head:{
+									view:"toolbar", id:"addDic",margin:-4, cols:[
+									{view:"label", label: "增加渠道信息" },
+									{ view:"icon", icon:"times-circle",
+										click:windowForDicClose}
+									]
+								},
+					            body:webix.copy(CommnucationForm)}).show();
+					}else if(id == "modifyDic"){
+					 		if(comm2Form){
+					 			webix.ui({
+					            view:"window",
+					            id:"windowForDic",
+								height:500,
+								scroll:true,
+					            position:"center",
+					            modal:true,
+					            head:{
+									view:"toolbar", id:"modifyDic",margin:-4, cols:[
+									{view:"label", label: "修改渠道信息" },
+									{ view:"icon", icon:"times-circle",
+										click:windowForDicClose}
+									]
+								},
+					            body:webix.copy(CommnucationForm)}).show();
+						       	$$('CommnucationForm').setValues({id:comm2Form.id,value:comm2Form.value,ip:comm2Form.ip,port:comm2Form.port,serverName:comm2Form.serverName});
+					 		}else{
+					 			webix.alert({
+													type:"alert-error",
+													text:"请选中需要修改的数据！"
+													});
+					 		}
+					 	}else if(id == "delDic"){
+					 		if(comm2Form){
+								var commId = comm2Form.id;
+								 webix.ajax().post('/communication/removeCommunication', 
+											{commId:commId}, function (text, xml, xhr) {
+												if(text == "true"){
+													 $$("datatable2childItem").remove(commId);
+												}else{
+													webix.alert({
+															type:"alert-error",
+															text:"删除失败！"
+															});
+												}
+									});
+								}else{
+									webix.alert({
+												type:"alert-error",
+												text:"请选中需要删除的数据！"
+												});
+								}
+					 	}
+			}//选择渠道信息
+		}else{//没有选择menu
+			webix.alert({
+				type:"alert-error",
+				text:"请选中需要操作的数据字段！"
+				});
+		}
+		 }
+		
+		
+	}
+}	
+
+function windowForDicClose(){
+	$$("windowForDic").close();
+}
+
+function DicFormSubmit(){
+	 var formData = JSON.stringify( $$("DicForm").getValues());
+	 var parentDic = $$("menu2ParentItem").getSelectedItem();
+	 if($$("addDic")){
+	 	webix.ajax().post('/dictionary/addDictionary', 
+	 					{formData:formData}, function (text, xml, xhr) {
+	 						if(text == "true"){
+	 						 	$$("datatable2childItem").clearAll();	
+	 							 $$("datatable2childItem").load("/dictionary/findItemsByParentId?parentId="+parentDic.id);
+	 	 						 $$("datatable2childItem").refresh();
+	 						}
+					});
+	 }else if($$("modifyDic")){
+	 	webix.ajax().post('/dictionary/modifyDictionary', 
+	 					{formData:formData}, function (text, xml, xhr) {
+	 						if(text == "true"){
+	 							 $$("datatable2childItem").clearAll();	
+	 							 $$("datatable2childItem").load("/dictionary/findItemsByParentId?parentId="+parentDic.id);
+	 						}
+					});
+	 }
+	 $$("windowForDic").close();
+}
+
+function CommFormSubmit(){
+	 var formData = JSON.stringify( $$("CommnucationForm").getValues());
+	 if($$("addDic")){
+	 	webix.ajax().post('/communication//addCommunication', 
+	 					{formData:formData}, function (text, xml, xhr) {
+	 						if(text == "true"){
+	 						 	$$("datatable2childItem").clearAll();	
+	 							 $$("datatable2childItem").load("/communication/findAllComms");
+	 	 						 $$("datatable2childItem").refresh();
+	 						}
+					});
+	 }else if($$("modifyDic")){
+	 	webix.ajax().post('/communication/modifyCommunication', 
+	 					{formData:formData}, function (text, xml, xhr) {
+	 						if(text == "true"){
+	 							 $$("datatable2childItem").clearAll();	
+	 							 $$("datatable2childItem").load("/communication/findAllComms");
+	 						}
+					});
+	 }
+	 $$("windowForDic").close();
+}
+/*]]>*/
+</script>
+</body>
+</html>

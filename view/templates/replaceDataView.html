@@ -1,0 +1,371 @@
+<script th:inline="javascript">
+/*<![CDATA[*/ 
+//获得业务组id来定位dataview的id和datatable的id
+var caseCollId = [[${caseCollId}]];
+var busId = [[${busId}]];
+var dataViewId = "dataview"+busId;
+dataTableId = "datatable"+busId;
+var menudData=[ {id:"addNode", value:"增加",}, 
+				{id:"removeNode", value:"删除"},
+				{id:"closeAllNode", value:"收缩"},  
+				{id:"scanTree", value:"预览"}];
+$$(dataTableId).bind($$(dataViewId));
+var MessageScanform = [
+		 {view:"textarea" , id:"messageScanText",name:"messageText",height:200, label:"报文预览", labelPosition:"top" }
+	];
+var uploadMessageLogForm = {
+id:"myUploadMessageLogForm",
+view:"form",
+scroll:true,
+width:300,
+datatype: "json",
+rows:[{
+	cols:[
+		{view: "label",label:"日志文件:"},
+		{view: "uploader",id:"messageLogFile",label:"请选择",width:170,labelPosition:"left",autosend:false,upload:"/case/uploadMeaasgeLogFile",name:"messageLogFiles",on:{onAfterFileAdd:messageLogFilesSend}},
+		{ view:"text", label:'报文日志文件路径', name:"messageLogUrl" ,width:250,hidden:true,id:"meaasgeLogUrl"}
+	]
+},{ view:"button", type:"form", value:"提交数据",width:200, click:myUploadMessageLogFormSubmit}]
+};
+var form = {
+id:"myCaseForm",
+view:"form",
+scroll:true,
+width:1000,
+datatype: "json",
+rows:[
+		{
+			cols:[{
+					rows:[
+		{
+			cols:[
+					{
+						rows:[
+							{ view:"text", label:'名称', name:"name" ,width:250,required:true},
+							{ view:"textarea", label:'描述', name:"descp" ,width:250,required:true},
+							{ view:"text", label:'案例组id', name:"caseCollId",width:250,value:caseCollId,hidden:true},
+							{ view:"select", label:'通讯协议', name:"protocol",width:250,required:true, options:"/dictionary/findItemsByParentName?parentName="+"通讯协议"},
+							{ view:"select",id:"dataFormatSelect",name :"dataFormat",label:"报文格式",required:true, options:"/dictionary/findItemsByParentName?parentName="+"报文格式"},
+							{ view:"select",id:"communicationSelect",name :"communicationId",label:"渠道信息", required:true,options:"/communication/findAllComms"},
+							{ view:"select", label:'是否测试', name:"isTest" ,width:250,options:[
+							    { value:"是", id:"是" },
+							    { value:"否", id:"否" }
+							]},
+							{ view:"textarea", label:'备注信息', name:"remark" ,width:250},
+							{cols:[
+								{view: "label",label:"报文文件"},
+								{view: "uploader",id:"file",label:"请选择",width:170,labelPosition:"left", autosend:false,upload:"/case/upload",name:"files",on:{onAfterFileAdd:fileSend}}
+							]},
+							{cols:[
+								{view: "label",label:"日志文件"},
+								{view: "uploader",id:"messageLogFile",label:"请选择",width:170,labelPosition:"left",autosend:false,upload:"/case/uploadMeaasgeLogFile",name:"messageLogFiles",on:{onAfterFileAdd:messageLogFilesSend}},
+								{ view:"text", label:'报文日志文件路径', name:"messageLogUrl" ,width:250,hidden:true,id:"meaasgeLogUrl"}
+							]}
+				 		]
+					},
+					{ view:"label", label:'',width:30},
+					{
+						rows:[
+								{
+									view:"toolbar",
+									height:40,
+									gravity:1,
+									elements:[
+										{view : "label",label : "报文"},
+										{view:"menu",data:menudData,width:220,click:treeOperHandle},
+									]
+								},
+								{ 	view:"treetable",
+									id:"tree",
+								    datatype:"json",
+								    on : {
+											onHeaderClick:clearSelection,
+											//取消编辑本包交易长度
+											onBeforeEditStart:cancelDealLengthEdit
+										 },
+								    columns:[
+								      { id:"id", header:"id",hidden:true},
+								      { id:"name", width:150, header:{ text:"标签名称", height:25},
+								       template:"{common.treetable()} #name#" ,editor:"text"},
+								      { id:"value",header:{ text:"标签值", height:25}, width:150,height:25,editor:"text"},
+								      { id:"sign",header:{ text:"标签标志", height:25}, width:150,height:25,editor:"text",},
+								      { id:"parentId", header:"parentId",hidden:true}
+								    ], 
+								     editable:true,
+								     editor:"text",
+								     editaction:"dblclick",
+								     editValue:"name",
+								     select:true, 
+								     autoheight:true,
+								     autowidth:true,
+								 },
+							 ]
+						},
+				]
+					
+			},
+			{ view:"button", type:"form", value:"提交数据",width:250, click:myCaseFormSubmit}
+ ]
+				  },{ view:"label", label:'',width:30},
+				  {
+				  		 view:"form", elements:MessageScanform, id:"messageForm"
+				  }]//1
+		}
+ 	]
+  };
+webix.ui({
+        view:"contextmenu",
+	    id:"cmenu"+caseCollId,
+        data:["Add","Delete",{ $template:"Separator" },"Send","Upload"],
+        on:{
+            onItemClick:function(id){
+             var cases = $$(dataTableId).getSelectedItem();
+             var caseId
+             if(cases){
+             	caseId = cases.id;
+             }
+           	if(id=="Add"){
+           		webix.ui({
+			            view:"window",
+			            id:"win2caseForm",
+						height:500,
+						scroll:true,
+						fullscreen:true,
+			            position:"center",
+			            modal:true,
+			            head:{
+							view:"toolbar", margin:-4, cols:[
+							{view:"label", label: "添加案例" },
+							{ view:"icon", icon:"times-circle",
+								click:win2caseFormClose  }
+							]
+						},
+			            body:webix.copy(form)
+		       		}).show();
+           	}else if(id=="Delete"){
+	           	if($$(dataTableId).getSelectedItem()){
+	           		webix.ajax().get("/case/removeCase?caseId="+caseId,
+						function(text, data, XmlHttpRequest) {
+							if(text == "true"){
+								$$(dataTableId).remove(caseId);
+								var pleaseAddId = $$(dataTableId).getIdByIndex(0);
+							 	 if(!pleaseAddId){
+							 	 	 $$(dataTableId).add({id:"请添加",name:"请添加"},0)
+							 	 }
+							}else{
+								webix.alert({
+									type:"alert-error",
+									text:"删除失败！"
+								});
+							}
+					});
+	           	}else{
+	           		webix.alert({
+									type:"alert-error",
+									text:"请选择一项！"
+								});
+	           	}
+           	}else if(id == "Send"){
+           		if($$(dataTableId).getSelectedItem()){
+           			webix.ajax().get("/viewChange/MysendOperation?caseId="+caseId,
+					function(text, data, XmlHttpRequest) {
+						eval(text.replace(/<(\/)?script>/g, ""));
+					});
+           		}else{
+           			webix.alert({
+									type:"alert-error",
+									text:"请选择一项！"
+								});
+           		}
+           	}else if(id == "Upload"){
+           		if($$(dataTableId).getSelectedItem()){
+	           		webix.ui({
+				            view:"window",
+				            id:"win2caseForm",
+							height:200,
+							scroll:true,
+				            position:"center",
+				            modal:true,
+				            head:{
+								view:"toolbar", margin:-4, cols:[
+								{view:"label", label: "上传报文日志文件" },
+								{ view:"icon", icon:"times-circle",
+									click:win2caseFormClose  }
+								]
+							},
+				            body:webix.copy(uploadMessageLogForm)
+			       		}).show();
+		       		}else{
+		       			webix.alert({
+									type:"alert-error",
+									text:"请选择一项！"
+								});
+		       		}
+           	}
+           }
+       }
+});
+function treeOperHandle(id){
+	if(id == "addNode"){
+		 $$("tree").openAll();
+		 var parentItem= $$("tree").getSelectedItem();
+		 if(parentItem){
+		 	var index = parentItem.$count;
+		 }else{
+			var index= -1;	 
+		 }
+		 var id = String(webix.uid());
+		
+		 if(parentItem){
+		 	var pid = parentItem.id;
+	        $$("tree").add( {id:id,parentId:pid,name:""},index , pid);
+	        $$("tree").closeAll();
+	        $$("tree").open(pid);
+	        }else{
+	       	 $$("tree").add( {id:id,parentId:null,name:""},index , null);
+	       	 $$("tree").closeAll();
+	        }
+	}else if(id == "removeNode"){
+		 $$("tree").remove( $$("tree").getSelectedId());	
+	}else if(id == "closeAllNode"){
+		 $$("tree").closeAll();
+	}else{
+		$$("tree").openAll();
+		var dataArr =  new Array();
+		var count = 0;
+		$$("tree").eachRow( 
+		    function (row){ 
+		        var data = $$("tree").getItem(row);
+		        dataArr[count] = data;
+		        count = count +1;
+		    }
+		)
+		 var str = JSON.stringify(dataArr);
+			webix.ajax().post('/case/messageScan', 
+ 		 					{ treeData : str,mesFormat:$$("dataFormatSelect").getValue()}, function (text, xml, xhr) {
+ 		 						if(text){
+								 	$$("messageScanText").setValue(text);
+								 	$$("messageForm").refresh();
+							 	}else{
+							 		webix.alert({
+											type:"alert-error",
+											text:"数据有误，请检查！"
+										});
+							 	}
+							});
+	}
+}
+
+
+function clearSelection(){
+	$$("tree").clearSelection();
+}
+
+function win2caseFormClose(){
+	$$("win2caseForm").close();
+}
+function myUploadMessageLogFormSubmit(){
+  var cases = $$(dataTableId).getSelectedItem();
+  var logUrl = $$("meaasgeLogUrl").getValue();
+	webix.ajax().post("/case/modifyMessageLogUrl",
+					{caseId:cases.id,logPath:logUrl},
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+						 $$(dataTableId).clearAll();
+						 $$(dataTableId).load("/case/findCasesByCaseCollId?caseCollId="+caseCollId, "json"); 
+						}else{
+							webix.alert({
+											type:"alert-error",
+											text:"数据库更新有误！"
+										});
+						}
+						 $$("win2caseForm").close();
+					});
+}
+
+function myCaseFormSubmit(){
+$$("tree").openAll();
+var dataArr =  new Array();
+var count = 0;
+$$("tree").eachRow( 
+    function (row){ 
+        var data = $$("tree").getItem(row);
+        dataArr[count] = data;
+        count = count +1;
+    }
+)
+ var treeData = JSON.stringify(dataArr);
+ var formData = JSON.stringify( $$("myCaseForm").getValues());
+	webix.ajax().post("/case/addCase",
+					{formData:formData,treeData:treeData,mesFormat:$$("dataFormatSelect").getValue()},
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+						 	 var pleaseAddId = $$(dataTableId).getIdByIndex(0);
+						 	 if(pleaseAddId){
+						 	 	 $$(dataTableId).remove(pleaseAddId);
+						 	 }
+							 $$(dataTableId).load("/case/findCasesByCaseCollId?caseCollId="+caseCollId, "json"); 
+						}else{
+							webix.alert({
+								type:"alert-error",
+								text:"增加失败！"
+							});
+					}
+	});
+$$("win2caseForm").close();
+
+}
+
+function fileSend(){
+	$$("file").files.data.each(function(obj){
+      //add file specific additional parameters
+      obj.formData = { fileFormat:$$("dataFormatSelect").getValue()};
+     });
+     $$("file").send(function(response){
+    		 fileTree = JSON.stringify(response);
+     		 if(fileTree == "\"false\""){
+  		 		webix.alert({
+					type:"alert-error",
+					text:"报文格式可能和内容不匹配！请重新选择！"
+				});
+     		 }else{
+     		 	 $$("tree").clearAll();
+	    	 	 $$("tree").parse(fileTree,"json");
+	    	 	 $$("tree").refresh();
+     		 }
+     });
+}
+function messageLogFilesSend(){
+     $$("messageLogFile").send(function(response){
+     	 res = JSON.stringify(response);
+     		 if(res == "\"false\""){
+  		 		webix.alert({
+					type:"alert-error",
+					text:"上传失败！"
+				});
+     		 }else{
+     		 	 res = res.replace(/\"/g,""); 
+     		 	 $$("meaasgeLogUrl").setValue(res);
+     		 }
+     });
+}
+
+
+function cancelDealLengthEdit(id){
+ var editItem= $$("tree").getSelectedItem();
+ if(editItem){
+	 if(id == editItem.id && editItem.name == "本交易包长度"){
+	 	$$("tree").editCancel();
+	 	webix.alert({
+						type:"alert-error",
+						text:"本交易包长度提交后由后台计算，不需手动更改"
+					});
+ 	}
+ }
+}
+
+$$("cmenu"+caseCollId).attachTo($$(dataTableId));
+$$(dataTableId).load("/case/findCasesByCaseCollId?caseCollId="+caseCollId, "json");
+$$(dataTableId).show();
+/*]]>*/
+</script>

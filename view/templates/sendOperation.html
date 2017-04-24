@@ -1,0 +1,86 @@
+<script th:inline="javascript">
+/*<![CDATA[*/ 
+var caseId = [[${caseId}]];
+var dataFormat = $$(dataTableId).getSelectedItem().dataFormat;
+webix.ready(function(){
+function getData(){
+	webix.ajax().post('/case/sendSop2Server', 
+			{caseId:caseId,dataFormat:dataFormat},function (text, xml, xhr) {
+			text = text.replace(/\\n/g,"\r\n"); 
+			text = text.replace(/\[\"/g,""); 
+			text = text.replace(/\"\]/g,""); 
+			$$("receiveArea").setValue(text);
+			if(dataFormat == "insop"){
+				dataFormat = "outsop";
+			}
+			webix.ajax().post('/case/makeReceiveData2Tree', 
+				{message:text,dataFormat:dataFormat},function (text, xml, xhr) {
+					  $$("sendTree").define("data",text);
+			});
+	});
+	webix.ajax().post('/case/findCaseByCaseId', 
+			{caseId:caseId},function (text, xml, xhr) {
+			var caze = JSON.parse(text);
+			webix.ajax().post('/case/messageScan', 
+			{treeData:caze.treeData,mesFormat:dataFormat},function (text, xml, xhr) {
+				$$("sendArea").setValue(text);
+		});	
+	});	
+};	
+var MessageForm = {
+	id:"myMessageForm",
+	view:"form",
+	scroll:true,
+	width:1200,
+	datatype: "json",
+	rows:[{
+		cols:[ 
+			   {view:"textarea" ,id:"sendArea", label:"发送的报文:", labelPosition:"top",height:800},
+			   {view:"textarea" , id:"receiveArea",label:"接受到的报文:", labelPosition:"top",height:800},
+			   {rows:[ 
+		   		{view:"toolbar",
+				height:40,
+				gravity:1,
+				elements:[
+					{view : "label",label : "报文"},
+				]},
+			    {view:"treetable",
+				id:"sendTree",
+			    datatype:"json",
+			    columns:[
+			      { id:"id", header:"id",hidden:true},
+			      { id:"name", width:150, header:{ text:"标签名称", height:25},
+			       template:"{common.treetable()} #name#" ,editor:"text"},
+			      { id:"value",header:{ text:"标签值", height:25}, width:150,height:25},
+			      { id:"sign",header:{ text:"标签标志", height:25}, width:150,height:25},
+			      { id:"parentId", header:"parentId",hidden:true}
+			    ], 
+			     select:true, 
+			     autoheight:true,
+			     autowidth:true,
+			 }]}
+		]
+	}]
+};
+webix.ui({
+	    view:"window",
+	    id:"receiveData",
+	    scroll:true,
+        position:"center",
+        modal:true,
+        move:true,
+        on:{onBeforeShow:getData},
+	    width: 5000,
+	    height: 500,
+	    head:{
+				view:"toolbar", margin:-4, cols:[
+					{view:"label", label: "接收到的数据" },
+					{ view:"icon", icon:"times-circle",
+						click:"$$('receiveData').close();"}
+					]
+			},
+		body:webix.copy(MessageForm)}).show();
+		
+});
+/*]]>*/
+</script>

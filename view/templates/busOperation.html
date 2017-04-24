@@ -1,0 +1,231 @@
+<script th:inline="javascript">
+/*<![CDATA[*/ 
+var buttonId =[[${buttonId}]];
+var busForm ={
+				    view:"form", 
+				    id:"busForm",
+				    elements:[
+				    	{ view:"text", label:"id" ,name:"id",id:"busId",hidden:true},
+				        { view:"text", label:"名称" ,name:"name",id:"busName"},
+				        { view:"select", name:"bussCollId",id:"busBusCollId",label:"业务组:", options:"/bussColl/findAllBusCollsForSelect"},
+				        {cols:[
+				            { view:"button", type:"form", value:"Submit data",click:busformSubmit},
+				        ]}
+				   	 ]
+				   };
+				   
+var bucCollForm ={
+				    view:"form", 
+				    id:"busCollForm",
+				    elements:[
+				    	{ view:"text", label:"id" ,name:"id",id:"busCollId",hidden:true},	
+				        { view:"text", label:"名称" ,name:"name",id:"busCollName"},
+				        {cols:[
+				            { view:"button", type:"form", value:"Submit data",click:busCollformSubmit,},
+				        ]}
+				   	 ]
+				   };
+if(buttonId == "index"){
+		window.location.href = "/";
+	}				   
+if(buttonId == "modifyBus"){
+var selectBus = sideBarSelectedItem;
+	if(!selectBus.icon){
+		webix.ui({
+            view:"window",
+            id:"windowForOper",
+			height:500,
+			scroll:true,
+            position:"center",
+            modal:true,
+            head:{
+				view:"toolbar", id:"modifyBus",margin:-4, cols:[
+				{view:"label", label: "更新业务" },
+				{ view:"icon", icon:"times-circle",
+					click:windowForOperClose}
+				]
+			},
+            body:webix.copy(busForm)
+      		}).show();
+      		$$("busId").setValue(selectBus.id);
+      		$$("busId").refresh();
+      		$$("busName").setValue(selectBus.value);
+      		$$("busName").refresh();
+      		$$("busBusCollId").setValue(selectBus.bussCollId);
+      		$$("busName").refresh();
+	}else{
+		webix.ui({
+            view:"window",
+            id:"windowForOper",
+			height:500,
+			scroll:true,
+            position:"center",
+            modal:true,
+            head:{
+				view:"toolbar", id:"modifyBusColl",margin:-4, cols:[
+				{view:"label", label: "更新业务组" },
+				{ view:"icon", icon:"times-circle",
+					click:windowForOperClose}
+				]
+			},
+            body:webix.copy(bucCollForm)
+      		}).show();
+      		$$("busCollId").setValue(selectBus.id);
+      		$$("busCollId").refresh();
+      		$$("busCollName").setValue(selectBus.value);
+      		$$("busCollName").refresh();
+	}
+}
+	
+if(buttonId == "delBus"){
+	var selectItem = sideBarSelectedItem;
+	var id = selectItem.id;
+	if(!selectItem.icon){
+		webix.ajax().get("/bussiness/removeBusiness?busId="+id,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							$$("mySidebar").remove(id);
+							$$("myTabView").removeView($$("myTabView").getValue());
+						}else{
+							webix.alert({
+										type:"alert-error",
+										text:"删除失败！"
+										});
+						}
+					});
+	}else{
+		webix.ajax().get("/bussColl/removeBusColl?busCollId="+id,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							$$("mySidebar").remove(id);
+							$$("myTabView").removeView($$("myTabView").getValue());
+						}else{
+							webix.alert({
+										type:"alert-error",
+										text:"删除失败！"
+										});
+						}
+					});
+	}
+	
+}
+
+			   
+if(buttonId == "业务组"){
+	webix.ui({
+            view:"window",
+            id:"windowForOper",
+			height:500,
+			scroll:true,
+            position:"center",
+            modal:true,
+            head:{
+				view:"toolbar", id:"addBusColl",margin:-4, cols:[
+				{view:"label", label: "添加业务组" },
+				{ view:"icon", icon:"times-circle",
+					click:windowForOperClose}
+				]
+			},
+            body:webix.copy(bucCollForm)
+      		}).show();
+
+	
+}
+
+if(buttonId == "业务"){
+webix.ui({
+            view:"window",
+            id:"windowForOper",
+			height:500,
+			scroll:true,
+            position:"center",
+            modal:true,
+            head:{
+				view:"toolbar", id:"addBus",margin:-4, cols:[
+				{view:"label", label: "添加业务" },
+				{ view:"icon", icon:"times-circle",
+					click:windowForOperClose}
+				]
+			},
+            body:webix.copy(busForm)
+      		}).show();
+
+
+}
+
+function windowForOperClose(){
+	$$("windowForOper").close();
+}
+
+function busformSubmit(){
+	var formData = JSON.stringify( $$("busForm").getValues());
+	if($$("modifyBus")){
+		webix.ajax().get("/bussiness/modifyBusiness?formData="+formData,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							var bus = $$("mySidebar").getSelectedItem();
+							$$("mySidebar").remove(bus.id);
+							$$("mySidebar").add(bus,-1,$$("busBusCollId").getValue());
+							$$("mySidebar").refresh(); 
+							$$("windowForOper").close();
+						}else{
+							$$("windowForOper").close();
+							webix.alert({
+										type:"alert-error",
+										text:"更新失败！"
+										});
+						}
+					});
+	}else{
+		webix.ajax().get("/bussiness/addBusiness?formData="+formData,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							$$("mySidebar").load("/bussColl/findAllBusColls","json");
+							$$("windowForOper").close();
+						}else{
+							$$("windowForOper").close();
+							webix.alert({
+										type:"alert-error",
+										text:"添加失败！"
+										});
+						}
+					});
+	}
+	
+}
+
+function busCollformSubmit(){
+	var formData = JSON.stringify( $$("busCollForm").getValues());
+	if($$("modifyBusColl")){
+		webix.ajax().get("/bussColl/modifyBusColl?formData="+formData,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							$$("mySidebar").load("/bussColl/findAllBusColls","json");
+							$$("windowForOper").close();
+						}else{
+							$$("windowForOper").close();
+							webix.alert({
+										type:"alert-error",
+										text:"更新失败！"
+										});
+						}
+					});
+	}else{
+		webix.ajax().get("/bussColl/addBusColl?formData="+formData,
+					function(text, data, XmlHttpRequest) {
+						if(text == "true"){
+							$$("mySidebar").load("/bussColl/findAllBusColls","json");
+							$$("windowForOper").close();
+						}else{
+							$$("windowForOper").close();
+							webix.alert({
+										type:"alert-error",
+										text:"添加失败！"
+										});
+						}
+					});
+	}
+	
+}
+/*]]>*/
+</script>

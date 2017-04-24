@@ -1,0 +1,206 @@
+<script th:inline="javascript">
+/*<![CDATA[*/ 
+var item = $$("mySidebar").getSelectedItem();
+if(!item.icon){
+var busiId =[[${id}]];
+var busCollId = [[${busCollId}]];
+var childDataViewId = "dataview"+busiId;
+var childTableViewId = "datatable"+busiId;
+var childView = {
+	header : item.value,
+	close : true,
+	body : {
+		id:busiId,
+		cells:[ 
+				{
+					rows:[{
+								view : "dataview",
+								select : true,
+								id : childDataViewId,
+								onContext:{},
+								on : {
+									 onItemDblClick : replaceDataView
+								},
+								type : {
+									height : 60
+								},
+								template : '<div>#name#</div>#id#',
+								url:"/caseColl/findCaseCollsByBusId?busId="+busiId,
+								datatype : "json"
+						},
+					]
+				},{
+					view : "datatable",
+					id : childTableViewId,
+					on : {
+						 onItemDblClick : getSelectItem 
+					},
+					select : true,
+					datatype:"json",
+				    onContext:{},
+					columns : [ {
+						id : "id",
+						header : "案例号",
+						fillspace:true,
+						hidden:true
+					}, {
+						id : "name",
+						header : "案例名称",
+					    fillspace:true, 
+					}, {
+						id : "descp",
+						header : "案例描述",
+						fillspace:true,
+					}, {
+						id : "protocol",
+						header : "通讯协议",
+						fillspace:true,
+					},{
+						id : "dataFormat",
+						header : "报文格式",
+						fillspace:true,
+					},{
+						id : "isTest",
+						header : "是否已测试",
+						fillspace:true,
+					},{ id:"messageLogUrl", header:"下载日志文件" , 
+						template:function(obj){
+						console.log(obj);
+						if(obj.messageLogUrl){
+							return "<a href='/case/downMessageLogFile?caseId="+obj.id+"'>下载报文日志</a>";
+						}else{
+							return "请先上传日志文件";
+						}
+						},fillspace:true
+						}]
+				}
+				 ]
+		}
+};
+$$("myTabView").addView(childView);
+$$(busiId).show();
+var caseCollform =  {
+				    view:"form", 
+				    id:"caseCollform",
+				    elements:[
+				     	{ view:"text", label:"id" ,name:"id",hidden:true},
+				        { view:"text", label:"名称" ,name:"name"},
+				        { view:"select", name:"busId", label:"业务:", options:"/bussiness/findBusinessesbByBusCollId?busCollId="+busCollId},
+				        {cols:[
+				            { view:"button", type:"form", value:"Submit data",click:caseCollformSubmit},
+				        ]}
+				   	 ]
+					};
+ webix.ui({
+        view:"contextmenu",
+	    id:"cmenu"+busiId,
+        data:["Add","Update",{ $template:"Separator" },"Delete"],
+        on:{
+            onItemClick:function(id){
+            	var bus = $$(childDataViewId).getSelectedItem();
+                if(id=='Add'){
+                		webix.ui({
+				            view:"window",
+				            id:"win2caseCollForm",
+							height:500,
+							scroll:true,
+				            position:"center",
+				            modal:true,
+				            head:{
+								view:"toolbar",id:"addTollBar", margin:-4, cols:[
+								{view:"label", label: "添加案例组" },
+								{ view:"icon", icon:"times-circle",
+									click:win2caseCollFormClose }
+								]
+							},
+				            body:webix.copy(caseCollform)
+			       		}).show();
+                }else if(id=='Update'){
+                if(bus){
+                	webix.ui({
+				            view:"window",
+				            id:"win2caseCollForm",
+							height:500,
+							scroll:true,
+				            position:"center",
+				            modal:true,
+				            head:{
+								view:"toolbar", id:"updateTollBar",margin:-4, cols:[
+								{view:"label", label: "修改案例组" },
+								{ view:"icon", icon:"times-circle",
+									click:win2caseCollFormClose }
+								]
+							},
+				            body:webix.copy(caseCollform)
+			       		})
+			       		$$('win2caseCollForm').show();
+			       		var busColl2Form = $$(childDataViewId).getSelectedItem();
+			       		$$('caseCollform').setValues({id:busColl2Form.id,name:busColl2Form.name,busId:busColl2Form.busId});
+                }else{
+                	webix.alert({
+							type:"alert-error",
+							text:"请选择一项！"
+						});
+                }
+                	
+                }else if(id=='Delete'){
+                	if(!bus){
+                			webix.alert({
+							type:"alert-error",
+							text:"请选择一项！"
+						});
+                	}else{
+                		var caseCollId = $$(childDataViewId).getSelectedItem().id;
+                			webix.ajax().get("/caseColl/removeCaseColl?caseCollId="+caseCollId,
+									function(text, data, XmlHttpRequest) {
+										if(text == "true"){
+											$$(childDataViewId).remove(caseCollId);
+											var pleaseAddId = $$(childDataViewId).getIdByIndex(0);
+										 	 if(!pleaseAddId){
+										 	 	 $$(childDataViewId).add({id:"null",name:"请添加"},0)
+										 	 }
+										}else{
+											webix.alert({
+												type:"alert-error",
+												text:"删除失败！"
+											});
+										}
+								});
+                	}
+                }
+            }
+        }
+});
+function win2caseCollFormClose(){
+	$$("win2caseCollForm").close();
+}
+
+
+function caseCollformSubmit(){
+	var formData = JSON.stringify( $$("caseCollform").getValues() );
+	if($$("addTollBar")){
+		$$("caseCollform").load("/caseColl/addCaseColl?formData="+formData,"json");
+		var pleaseAddId = $$(childDataViewId).getIdByIndex(0);
+	 	 if(pleaseAddId == "null"){
+	 	 	 $$(childDataViewId).remove("null");
+	 	 }
+	 	  $$(childDataViewId).clearAll();
+	 	 $$(childDataViewId).load("/caseColl/findCaseCollsByBusId?busId="+busiId);
+	 	 $$(childDataViewId).refresh();
+	}else if($$("updateTollBar")){
+		 webix.ajax().post('/caseColl/modifyCaseColl', 
+		 					{formData:formData}, function (text, xml, xhr) {
+		 					$$(childDataViewId).clearAll();
+		 					$$(childDataViewId).load("/caseColl/findCaseCollsByBusId?busId="+busiId);
+						});
+	}
+	$$(childDataViewId).load("/caseColl/findCaseCollsByBusId?busId="+busiId,"json");
+		$$("win2caseCollForm").close();
+	
+}
+
+$$("cmenu"+busiId).attachTo($$(childDataViewId));
+
+}
+/*]]>*/
+</script>
