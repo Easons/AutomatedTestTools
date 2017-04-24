@@ -3280,3 +3280,27 @@ alter table  TOOL_CASE  modifyCASE_RESULT clob [42001-193]
 2017-04-20 17:24:59 jdbc[12]: exception
 org.h2.jdbc.JdbcSQLException: Syntax error in SQL statement "UPDATE TOOL_CASE SET CASE_NAME  = ?,CASE_DESCRIPTION  = ?,CASE_PROTOCOL  = ?,CASE_DATAFORMAT  = ?,CASE_RESULT = ?,CASE_CREATETIME = ?,CASE_MODIFYTIME = ?,CASE_TREE = ? ,CASE_COMM_ID = ?,CASE_LOGURL = ? ,CASE_REMARK = ?[*]，CASE_ISTEST = ? WHERE CASE_ID = ?"; SQL statement:
 UPDATE TOOL_CASE SET CASE_NAME  = ?,CASE_DESCRIPTION  = ?,CASE_PROTOCOL  = ?,CASE_DATAFORMAT  = ?,CASE_RESULT = ?,CASE_CREATETIME = ?,CASE_MODIFYTIME = ?,CASE_TREE = ? ,CASE_COMM_ID = ?,CASE_LOGURL = ? ,CASE_REMARK = ?，CASE_ISTEST = ? WHERE CASE_ID = ? [42000-193]
+2017-04-24 15:39:09 database: wrong user or password; user: "SA"
+org.h2.message.DbException: Wrong user name or password [28000-193]
+	at org.h2.message.DbException.get(DbException.java:179)
+	at org.h2.message.DbException.get(DbException.java:155)
+	at org.h2.message.DbException.get(DbException.java:144)
+	at org.h2.engine.Engine.openSession(Engine.java:104)
+	at org.h2.engine.Engine.openSession(Engine.java:176)
+	at org.h2.engine.Engine.createSessionAndValidate(Engine.java:154)
+	at org.h2.engine.Engine.createSession(Engine.java:137)
+	at org.h2.engine.Engine.createSession(Engine.java:27)
+	at org.h2.engine.SessionRemote.connectEmbeddedOrServer(SessionRemote.java:349)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:115)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:99)
+	at org.h2.Driver.connect(Driver.java:69)
+	at org.h2.server.web.WebServer.getConnection(WebServer.java:735)
+	at org.h2.server.web.WebApp.login(WebApp.java:947)
+	at org.h2.server.web.WebApp.process(WebApp.java:210)
+	at org.h2.server.web.WebApp.processRequest(WebApp.java:169)
+	at org.h2.server.web.WebThread.process(WebThread.java:133)
+	at org.h2.server.web.WebThread.run(WebThread.java:89)
+	at java.lang.Thread.run(Thread.java:745)
+Caused by: org.h2.jdbc.JdbcSQLException: Wrong user name or password [28000-193]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:345)
+	... 19 more

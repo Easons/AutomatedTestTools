@@ -1,3 +1,10 @@
 eclipse.preferences.version=1
 encoding//config/application.properties=UTF-8
+encoding//view/templates/addTab.html=UTF-8
+encoding//view/templates/busOperation.html=UTF-8
+encoding//view/templates/getSelectedItem.html=UTF-8
+encoding//view/templates/main.html=UTF-8
+encoding//view/templates/maintenance.html=UTF-8
+encoding//view/templates/replaceDataView.html=UTF-8
+encoding//view/templates/sendOperation.html=UTF-8
 encoding/<project>=UTF-8
