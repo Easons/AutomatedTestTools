@@ -11,7 +11,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
@@ -72,9 +73,9 @@ public class NettyClientBean {
 	        DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
 	                uri.toASCIIString(), Unpooled.wrappedBuffer(msg.getBytes("UTF-8")));
 	        // 构建http请求
-	        request.headers().set(HttpHeaders.Names.HOST, host);
-	        request.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-	        request.headers().set(HttpHeaders.Names.CONTENT_LENGTH, request.content().readableBytes());
+	        request.headers().set(HttpHeaderNames.HOST, host);
+	        request.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+	        request.headers().set(HttpHeaderNames.CONTENT_LENGTH, request.content().readableBytes());
 	        // 发送http请求
 	        f.channel().write(request);
 	        f.channel().flush();
